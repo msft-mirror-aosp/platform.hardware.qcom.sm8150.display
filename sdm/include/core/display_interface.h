@@ -292,6 +292,9 @@ class DisplayEventHandler {
   */
   virtual DisplayError CECMessage(char *message) = 0;
 
+  /*! @brief Event handler for Histogram messages received by Display HAL. */
+  virtual DisplayError HistogramEvent(int source_fd, uint32_t blob_id) = 0;
+
   /*! @brief Event handler for events received by Display HAL. */
   virtual DisplayError HandleEvent(DisplayEvent event) = 0;
 
@@ -797,6 +800,11 @@ class DisplayInterface {
   */
   virtual bool IsSupportSsppTonemap() = 0;
 
+  /*! @brief Method to free concurrent writeback resoures for primary display.
+    @return \link DisplayError \endlink
+  */
+  virtual DisplayError TeardownConcurrentWriteback(void) = 0;
+
   /*
    * Returns a string consisting of a dump of SDM's display and layer related state
    * as programmed to driver
@@ -826,6 +834,22 @@ class DisplayInterface {
       @return \link DisplayError \endlink
   */
   virtual DisplayError GetSupportedDSIClock(std::vector<uint64_t> *bitclk_rates) = 0;
+
+  /*! @brief Method to retrieve the EDID information and HW port ID for display
+
+    @param[out] HW port ID
+    @param[out] size of EDID blob data
+    @param[out] EDID blob
+
+    @return \link DisplayError \endlink
+  */
+  virtual DisplayError GetDisplayIdentificationData(uint8_t *out_port, uint32_t *out_data_size,
+                                                    uint8_t *out_data) = 0;
+  /*! @brief Method to turn on histogram events. */
+  virtual DisplayError colorSamplingOn() = 0;
+
+  /*! @brief Method to turn off histogram events. */
+  virtual DisplayError colorSamplingOff() = 0;
 
  protected:
   virtual ~DisplayInterface() { }

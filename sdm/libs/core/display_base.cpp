@@ -134,10 +134,13 @@ DisplayError DisplayBase::Init() {
     color_mgr_ = ColorManagerProxy::CreateColorManagerProxy(display_type_, hw_intf_,
                                                             display_attributes_, hw_panel_info_);
 
-    if (!color_mgr_) {
+    if (color_mgr_) {
+      if (InitializeColorModes(false) != kErrorNone) {
+        DLOGW("InitColorModes failed for display %d-%d", display_id_, display_type_);
+      }
+      color_mgr_->ColorMgrCombineColorModes();
+    } else {
       DLOGW("Unable to create ColorManagerProxy for display %d-%d", display_id_, display_type_);
-    } else if (InitializeColorModes() != kErrorNone) {
-      DLOGW("InitColorModes failed for display %d-%d", display_id_, display_type_);
     }
   }
 
@@ -1029,7 +1032,7 @@ DisplayError DisplayBase::ApplyDefaultDisplayMode() {
     // where mode files is present, ColorManager will not find any modes.
     // Once boot animation is complete we re-try to apply the modes, since
     // file system should be mounted. InitColorModes needs to called again
-    error = InitializeColorModes();
+    error = InitializeColorModes(true);
     if (error != kErrorNone) {
       DLOGE("failed to initial modes\n");
       return error;
@@ -1423,7 +1426,8 @@ void DisplayBase::CommitLayerParams(LayerStack *layer_stack) {
   uint32_t hw_layers_count = UINT32(hw_layers_.info.hw_layers.size());
 
   for (uint32_t i = 0; i < hw_layers_count; i++) {
-    Layer *sdm_layer = layer_stack->layers.at(hw_layers_.info.index.at(i));
+    uint32_t sdm_layer_index = hw_layers_.info.index.at(i);
+    Layer *sdm_layer = layer_stack->layers.at(sdm_layer_index);
     Layer &hw_layer = hw_layers_.info.hw_layers.at(i);
 
     hw_layer.input_buffer.planes[0].fd = sdm_layer->input_buffer.planes[0].fd;
@@ -1432,6 +1436,12 @@ void DisplayBase::CommitLayerParams(LayerStack *layer_stack) {
     hw_layer.input_buffer.size = sdm_layer->input_buffer.size;
     hw_layer.input_buffer.acquire_fence_fd = sdm_layer->input_buffer.acquire_fence_fd;
     hw_layer.input_buffer.handle_id = sdm_layer->input_buffer.handle_id;
+    // TODO(user): Other FBT layer attributes like surface damage, dataspace, secure camera and
+    // secure display flags are also updated during SetClientTarget() called between validate and
+    // commit. Need to revist this and update it accordingly for FBT layer.
+    if (hw_layers_.info.gpu_target_index == sdm_layer_index) {
+      hw_layer.input_buffer.flags.secure = sdm_layer->input_buffer.flags.secure;
+    }
   }
 
   return;
@@ -1477,12 +1487,12 @@ void DisplayBase::PostCommitLayerParams(LayerStack *layer_stack) {
   return;
 }
 
-DisplayError DisplayBase::InitializeColorModes() {
+DisplayError DisplayBase::InitializeColorModes(bool enum_user_modes) {
   if (!color_mgr_) {
     return kErrorNotSupported;
   }
 
-  DisplayError error = color_mgr_->ColorMgrGetNumOfModes(&num_color_modes_);
+  DisplayError error = color_mgr_->ColorMgrGetNumOfModes(enum_user_modes, &num_color_modes_);
   if (error != kErrorNone || !num_color_modes_) {
     DLOGV_IF(kTagQDCM, "GetNumModes failed = %d count = %d", error, num_color_modes_);
     return kErrorNotSupported;
@@ -1492,7 +1502,8 @@ DisplayError DisplayBase::InitializeColorModes() {
   if (!color_modes_.size()) {
     color_modes_.resize(num_color_modes_);
 
-    DisplayError error = color_mgr_->ColorMgrGetModes(&num_color_modes_, color_modes_.data());
+    DisplayError error = color_mgr_->ColorMgrGetModes(enum_user_modes,
+                                         &num_color_modes_, color_modes_.data());
     if (error != kErrorNone) {
       color_modes_.clear();
       DLOGE("Failed");
@@ -1555,6 +1566,15 @@ DisplayError DisplayBase::InitializeColorModes() {
   }
 
   return kErrorNone;
+}
+
+DisplayError DisplayBase::GetDisplayIdentificationData(uint8_t *out_port, uint32_t *out_data_size,
+                                                       uint8_t *out_data) {
+  if (!out_port || !out_data_size) {
+    return kErrorParameters;
+  }
+
+  return hw_intf_->GetDisplayIdentificationData(out_port, out_data_size, out_data);
 }
 
 DisplayError DisplayBase::GetClientTargetSupport(uint32_t width, uint32_t height,
@@ -1833,6 +1853,14 @@ bool DisplayBase::IsHdrMode(const AttrVal &attr) {
   }
 
   return false;
+}
+
+DisplayError DisplayBase::colorSamplingOn() {
+  return kErrorNone;
+}
+
+DisplayError DisplayBase::colorSamplingOff() {
+  return kErrorNone;
 }
 
 }  // namespace sdm

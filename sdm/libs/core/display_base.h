@@ -140,11 +140,15 @@ class DisplayBase : public DisplayInterface {
   }
   virtual DisplayError SetQSyncMode(QSyncMode qsync_mode) { return kErrorNotSupported; }
   virtual std::string Dump();
-  virtual DisplayError InitializeColorModes();
+  virtual DisplayError InitializeColorModes(bool enum_user_modes);
   virtual DisplayError ControlIdlePowerCollapse(bool enable, bool synchronous) {
     return kErrorNotSupported;
   }
   virtual bool IsSupportSsppTonemap();
+  virtual DisplayError GetDisplayIdentificationData(uint8_t *out_port, uint32_t *out_data_size,
+                                                    uint8_t *out_data);
+  virtual DisplayError colorSamplingOn();
+  virtual DisplayError colorSamplingOff();
 
  protected:
   const char *kBt2020Pq = "bt2020_pq";

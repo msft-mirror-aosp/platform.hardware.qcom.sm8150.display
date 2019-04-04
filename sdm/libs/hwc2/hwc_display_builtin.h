@@ -91,6 +91,7 @@ class HWCDisplayBuiltIn : public HWCDisplay {
   virtual DisplayError SetDynamicDSIClock(uint64_t bitclk);
   virtual DisplayError GetDynamicDSIClock(uint64_t *bitclk);
   virtual DisplayError GetSupportedDSIClock(std::vector<uint64_t> *bitclk_rates);
+  virtual DisplayError TeardownConcurrentWriteback(void);
 
   virtual HWC2::Error SetDisplayedContentSamplingEnabledVndService(bool enabled);
   virtual HWC2::Error SetDisplayedContentSamplingEnabled(int32_t enabled, uint8_t component_mask, uint64_t max_frames) override;
@@ -147,6 +148,7 @@ class HWCDisplayBuiltIn : public HWCDisplay {
   bool high_brightness_mode_ = false;
 
   // Members for Color sampling feature
+  DisplayError HistogramEvent(int fd, uint32_t blob_id) override;
   histogram::HistogramCollector histogram;
   std::mutex sampling_mutex;
   bool api_sampling_vote = false;

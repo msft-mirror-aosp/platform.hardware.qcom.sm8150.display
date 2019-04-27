@@ -119,6 +119,8 @@ class DisplayBuiltIn : public DisplayBase, HWEventHandler, DppsPropIntf {
   sde_drm::DppsFeaturePayload histogramCtrl;
   sde_drm::DppsFeaturePayload histogramIRQ;
   void initColorSamplingState();
+
+  uint32_t pendingActiveConfig = UINT_MAX;
 };
 
 }  // namespace sdm

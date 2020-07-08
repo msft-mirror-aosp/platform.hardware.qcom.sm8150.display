@@ -827,8 +827,8 @@ void HWCSession::HandlePendingRefresh() {
   for (size_t i = 0; i < pending_refresh_.size(); i++) {
     if (pending_refresh_.test(i)) {
       Refresh(i);
+      break;
     }
-    break;
   }
 
   pending_refresh_.reset();
@@ -1007,6 +1007,12 @@ static int32_t SetLayerVisibleRegion(hwc2_device_t *device, hwc2_display_t displ
 static int32_t SetLayerZOrder(hwc2_device_t *device, hwc2_display_t display, hwc2_layer_t layer,
                               uint32_t z) {
   return HWCSession::CallDisplayFunction(device, display, &HWCDisplay::SetLayerZOrder, layer, z);
+}
+
+static int32_t SetLayerColorTransform(hwc2_device_t *device, hwc2_display_t display,
+                                      hwc2_layer_t layer, const float *matrix) {
+  return HWCSession::CallLayerFunction(device, display, layer, &HWCLayer::SetLayerColorTransform,
+                                       matrix);
 }
 
 int32_t HWCSession::SetOutputBuffer(hwc2_device_t *device, hwc2_display_t display,
@@ -1321,6 +1327,8 @@ hwc2_function_pointer_t HWCSession::GetFunction(struct hwc2_device *device,
       return AsFP<HWC2_PFN_SET_LAYER_VISIBLE_REGION>(SetLayerVisibleRegion);
     case HWC2::FunctionDescriptor::SetLayerZOrder:
       return AsFP<HWC2_PFN_SET_LAYER_Z_ORDER>(SetLayerZOrder);
+    case HWC2::FunctionDescriptor::SetLayerColorTransform:
+      return AsFP<HWC2_PFN_SET_LAYER_COLOR_TRANSFORM>(SetLayerColorTransform);
     case HWC2::FunctionDescriptor::SetOutputBuffer:
       return AsFP<HWC2_PFN_SET_OUTPUT_BUFFER>(SetOutputBuffer);
     case HWC2::FunctionDescriptor::SetPowerMode:
